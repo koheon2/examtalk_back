@@ -49,6 +49,8 @@ public class StudyService {
                 .region(request.getRegion())
                 .targetScore(request.getTargetScore())
                 .maxMembers(request.getMaxMembers())
+                .studyType(request.getStudyType())
+                .meetingFrequency(request.getMeetingFrequency())
                 .build();
 
         studyRepository.save(study);
@@ -79,6 +81,8 @@ public class StudyService {
         study.setRegion(request.getRegion());
         study.setTargetScore(request.getTargetScore());
         study.setMaxMembers(request.getMaxMembers());
+        study.setStudyType(request.getStudyType());
+        study.setMeetingFrequency(request.getMeetingFrequency());
 
         return StudyResponse.from(study);
     }

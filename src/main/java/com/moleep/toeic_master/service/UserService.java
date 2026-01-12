@@ -2,11 +2,13 @@ package com.moleep.toeic_master.service;
 
 import com.moleep.toeic_master.dto.request.ProfileUpdateRequest;
 import com.moleep.toeic_master.dto.response.GalleryImageResponse;
+import com.moleep.toeic_master.dto.response.StudyResponse;
 import com.moleep.toeic_master.dto.response.UserProfileResponse;
 import com.moleep.toeic_master.entity.ReviewImage;
 import com.moleep.toeic_master.entity.User;
 import com.moleep.toeic_master.exception.CustomException;
 import com.moleep.toeic_master.repository.ReviewImageRepository;
+import com.moleep.toeic_master.repository.StudyMemberRepository;
 import com.moleep.toeic_master.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final ReviewImageRepository reviewImageRepository;
+    private final StudyMemberRepository studyMemberRepository;
     private final S3Service s3Service;
 
     @Transactional(readOnly = true)
@@ -77,5 +80,12 @@ public class UserService {
     @Transactional(readOnly = true)
     public long getMyGalleryCount(Long userId) {
         return reviewImageRepository.countByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<StudyResponse> getMyStudies(Long userId) {
+        return studyMemberRepository.findByUserId(userId).stream()
+                .map(member -> StudyResponse.from(member.getStudy()))
+                .toList();
     }
 }

@@ -20,8 +20,10 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -59,8 +61,19 @@ public class ChatController {
         Long userId = (Long) headerAccessor.getSessionAttributes().get("userId");
 
         if (userId != null) {
-            ChatMessageResponse response = chatService.saveMessage(studyId, userId, request.getContent());
+            ChatMessageResponse response = chatService.saveMessage(studyId, userId, request.getContent(), request.getImageKey());
             messagingTemplate.convertAndSend("/topic/study/" + studyId, response);
         }
+    }
+
+    @PostMapping(value = "/api/studies/{studyId}/chat/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "채팅 이미지 업로드", description = "채팅에 첨부할 이미지를 업로드하고 imageKey를 반환합니다")
+    public ResponseEntity<ApiResponse<String>> uploadChatImage(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long studyId,
+            @RequestParam("file") MultipartFile file) {
+
+        String imageKey = chatService.uploadImage(studyId, userDetails.getId(), file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("이미지가 업로드되었습니다", imageKey));
     }
 }

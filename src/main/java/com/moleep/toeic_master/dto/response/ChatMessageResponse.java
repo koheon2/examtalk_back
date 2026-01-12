@@ -18,15 +18,17 @@ public class ChatMessageResponse {
     private Long senderId;
     private String senderNickname;
     private String content;
+    private String imageUrl;
     private LocalDateTime createdAt;
 
-    public static ChatMessageResponse from(ChatMessage message) {
+    public static ChatMessageResponse from(ChatMessage message, String imageUrl) {
         return ChatMessageResponse.builder()
                 .id(message.getId())
                 .studyId(message.getStudy().getId())
                 .senderId(message.getUser().getId())
                 .senderNickname(message.getUser().getNickname())
                 .content(message.getContent())
+                .imageUrl(imageUrl)
                 .createdAt(message.getCreatedAt())
                 .build();
     }

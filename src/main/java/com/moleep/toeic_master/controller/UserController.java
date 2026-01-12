@@ -3,6 +3,7 @@ package com.moleep.toeic_master.controller;
 import com.moleep.toeic_master.dto.request.ProfileUpdateRequest;
 import com.moleep.toeic_master.dto.response.ApiResponse;
 import com.moleep.toeic_master.dto.response.GalleryImageResponse;
+import com.moleep.toeic_master.dto.response.StudyResponse;
 import com.moleep.toeic_master.dto.response.UserProfileResponse;
 import com.moleep.toeic_master.security.CustomUserDetails;
 import com.moleep.toeic_master.service.UserService;
@@ -62,5 +63,13 @@ public class UserController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         Page<GalleryImageResponse> gallery = userService.getMyGallery(userDetails.getId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(gallery));
+    }
+
+    @GetMapping(value = "/me/studies", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "내 스터디 목록", description = "내가 참여 중인 스터디 목록을 조회합니다")
+    public ResponseEntity<ApiResponse<java.util.List<StudyResponse>>> getMyStudies(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        java.util.List<StudyResponse> studies = userService.getMyStudies(userDetails.getId());
+        return ResponseEntity.ok(ApiResponse.success(studies));
     }
 }

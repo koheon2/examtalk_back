@@ -41,6 +41,13 @@ public class Study {
     private Integer maxMembers;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "study_type", length = 20)
+    private StudyType studyType;
+
+    @Column(name = "meeting_frequency", length = 50)
+    private String meetingFrequency;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
     private StudyStatus status = StudyStatus.RECRUITING;

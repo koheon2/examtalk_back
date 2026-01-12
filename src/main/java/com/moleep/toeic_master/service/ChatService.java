@@ -23,11 +23,16 @@ public class ChatService {
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
     private final StudyMemberService memberService;
+    private final S3Service s3Service;
 
     @Transactional
-    public ChatMessageResponse saveMessage(Long studyId, Long userId, String content) {
+    public ChatMessageResponse saveMessage(Long studyId, Long userId, String content, String imageKey) {
         if (!memberService.isMember(studyId, userId)) {
             throw new CustomException("스터디 멤버만 채팅할 수 있습니다", HttpStatus.FORBIDDEN);
+        }
+
+        if ((content == null || content.isBlank()) && (imageKey == null || imageKey.isBlank())) {
+            throw new CustomException("메시지 내용 또는 이미지가 필요합니다", HttpStatus.BAD_REQUEST);
         }
 
         Study study = studyRepository.findById(studyId)
@@ -40,10 +45,13 @@ public class ChatService {
                 .study(study)
                 .user(user)
                 .content(content)
+                .imageKey(imageKey)
                 .build();
 
         chatMessageRepository.save(message);
-        return ChatMessageResponse.from(message);
+
+        String imageUrl = (imageKey != null && !imageKey.isBlank()) ? s3Service.getPresignedUrl(imageKey) : null;
+        return ChatMessageResponse.from(message, imageUrl);
     }
 
     @Transactional(readOnly = true)
@@ -53,6 +61,19 @@ public class ChatService {
         }
 
         return chatMessageRepository.findByStudyIdOrderByCreatedAtDesc(studyId, pageable)
-                .map(ChatMessageResponse::from);
+                .map(this::toResponse);
+    }
+
+    private ChatMessageResponse toResponse(ChatMessage message) {
+        String imageUrl = (message.getImageKey() != null && !message.getImageKey().isBlank())
+                ? s3Service.getPresignedUrl(message.getImageKey()) : null;
+        return ChatMessageResponse.from(message, imageUrl);
+    }
+
+    public String uploadImage(Long studyId, Long userId, org.springframework.web.multipart.MultipartFile file) {
+        if (!memberService.isMember(studyId, userId)) {
+            throw new CustomException("스터디 멤버만 이미지를 업로드할 수 있습니다", HttpStatus.FORBIDDEN);
+        }
+        return s3Service.upload(file, "chat/" + studyId);
     }
 }

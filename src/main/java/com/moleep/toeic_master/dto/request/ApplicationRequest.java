@@ -8,6 +8,6 @@ import lombok.Setter;
 @Setter
 public class ApplicationRequest {
 
-    @Size(max = 500, message = "신청 메시지는 500자 이하여야 합니다")
+    @Size(max = 2000, message = "신청 메시지는 2000자 이하여야 합니다")
     private String message;
 }

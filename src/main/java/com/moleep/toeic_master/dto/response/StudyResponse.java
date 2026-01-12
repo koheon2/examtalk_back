@@ -3,6 +3,7 @@ package com.moleep.toeic_master.dto.response;
 import com.moleep.toeic_master.entity.ExamType;
 import com.moleep.toeic_master.entity.Study;
 import com.moleep.toeic_master.entity.StudyStatus;
+import com.moleep.toeic_master.entity.StudyType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,6 +20,8 @@ public class StudyResponse {
     private String region;
     private Integer targetScore;
     private Integer maxMembers;
+    private StudyType studyType;
+    private String meetingFrequency;
     private StudyStatus status;
     private LocalDateTime createdAt;
     private Long authorId;
@@ -33,6 +36,8 @@ public class StudyResponse {
                 .region(study.getRegion())
                 .targetScore(study.getTargetScore())
                 .maxMembers(study.getMaxMembers())
+                .studyType(study.getStudyType())
+                .meetingFrequency(study.getMeetingFrequency())
                 .status(study.getStatus())
                 .createdAt(study.getCreatedAt())
                 .authorId(study.getUser().getId())
