@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -25,17 +27,17 @@ public class StudyApplicationController {
     private final StudyApplicationService applicationService;
     private final StudyMemberService memberService;
 
-    @PostMapping("/api/studies/{studyId}/applications")
+    @PostMapping(value = "/api/studies/{studyId}/applications", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "참가 신청", description = "스터디에 참가 신청을 합니다")
     public ResponseEntity<ApiResponse<ApplicationResponse>> apply(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long studyId,
             @Valid @RequestBody ApplicationRequest request) {
         ApplicationResponse response = applicationService.apply(userDetails.getId(), studyId, request);
-        return ResponseEntity.ok(ApiResponse.success("참가 신청이 완료되었습니다", response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("참가 신청이 완료되었습니다", response));
     }
 
-    @GetMapping("/api/studies/{studyId}/applications")
+    @GetMapping(value = "/api/studies/{studyId}/applications", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "신청 목록 조회", description = "방장이 대기 중인 참가 신청 목록을 조회합니다")
     public ResponseEntity<ApiResponse<List<ApplicationResponse>>> getApplications(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -44,7 +46,7 @@ public class StudyApplicationController {
         return ResponseEntity.ok(ApiResponse.success(applications));
     }
 
-    @PostMapping("/api/applications/{id}/accept")
+    @PostMapping(value = "/api/applications/{id}/accept", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "신청 수락", description = "참가 신청을 수락합니다")
     public ResponseEntity<ApiResponse<ApplicationResponse>> accept(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -53,7 +55,7 @@ public class StudyApplicationController {
         return ResponseEntity.ok(ApiResponse.success("참가 신청을 수락했습니다", response));
     }
 
-    @PostMapping("/api/applications/{id}/reject")
+    @PostMapping(value = "/api/applications/{id}/reject", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "신청 거절", description = "참가 신청을 거절합니다")
     public ResponseEntity<ApiResponse<ApplicationResponse>> reject(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -62,7 +64,7 @@ public class StudyApplicationController {
         return ResponseEntity.ok(ApiResponse.success("참가 신청을 거절했습니다", response));
     }
 
-    @GetMapping("/api/studies/{studyId}/members")
+    @GetMapping(value = "/api/studies/{studyId}/members", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "멤버 목록 조회", description = "스터디 멤버 목록을 조회합니다")
     public ResponseEntity<ApiResponse<List<StudyMemberResponse>>> getMembers(@PathVariable Long studyId) {
         List<StudyMemberResponse> members = memberService.getMembers(studyId);
@@ -71,20 +73,20 @@ public class StudyApplicationController {
 
     @DeleteMapping("/api/studies/{studyId}/members/{userId}")
     @Operation(summary = "멤버 강퇴", description = "방장이 멤버를 강퇴합니다")
-    public ResponseEntity<ApiResponse<Void>> removeMember(
+    public ResponseEntity<Void> removeMember(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long studyId,
             @PathVariable Long userId) {
         memberService.removeMember(studyId, userId, userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.success("멤버를 강퇴했습니다", null));
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/api/studies/{studyId}/leave")
     @Operation(summary = "스터디 탈퇴", description = "스터디에서 탈퇴합니다")
-    public ResponseEntity<ApiResponse<Void>> leaveStudy(
+    public ResponseEntity<Void> leaveStudy(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long studyId) {
         memberService.leaveStudy(studyId, userDetails.getId());
-        return ResponseEntity.ok(ApiResponse.success("스터디에서 탈퇴했습니다", null));
+        return ResponseEntity.noContent().build();
     }
 }

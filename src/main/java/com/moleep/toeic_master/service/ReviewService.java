@@ -1,12 +1,16 @@
 package com.moleep.toeic_master.service;
 
 import com.moleep.toeic_master.dto.request.ReviewRequest;
+import com.moleep.toeic_master.dto.response.ReviewImageResponse;
 import com.moleep.toeic_master.dto.response.ReviewResponse;
+import com.moleep.toeic_master.dto.response.TagResponse;
 import com.moleep.toeic_master.entity.Review;
+import com.moleep.toeic_master.entity.ReviewImage;
 import com.moleep.toeic_master.entity.School;
 import com.moleep.toeic_master.entity.Tag;
 import com.moleep.toeic_master.entity.User;
 import com.moleep.toeic_master.exception.CustomException;
+import com.moleep.toeic_master.repository.ReviewImageRepository;
 import com.moleep.toeic_master.repository.ReviewRepository;
 import com.moleep.toeic_master.repository.SchoolRepository;
 import com.moleep.toeic_master.repository.TagRepository;
@@ -17,7 +21,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
@@ -26,14 +32,40 @@ import java.util.List;
 public class ReviewService {
 
     private final ReviewRepository reviewRepository;
+    private final ReviewImageRepository reviewImageRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
     private final TagRepository tagRepository;
+    private final S3Service s3Service;
 
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviewsBySchool(Long schoolId, Pageable pageable) {
         return reviewRepository.findBySchoolIdOrderByCreatedAtDesc(schoolId, pageable)
-                .map(ReviewResponse::from);
+                .map(this::toReviewResponse);
+    }
+
+    private ReviewResponse toReviewResponse(Review review) {
+        List<ReviewImageResponse> imageResponses = review.getImages().stream()
+                .map(img -> ReviewImageResponse.builder()
+                        .id(img.getId())
+                        .imageUrl(s3Service.getPresignedUrl(img.getImageKey()))
+                        .originalFilename(img.getOriginalFilename())
+                        .createdAt(img.getCreatedAt())
+                        .build())
+                .toList();
+
+        return ReviewResponse.builder()
+                .id(review.getId())
+                .rating(review.getRating())
+                .content(review.getContent())
+                .createdAt(review.getCreatedAt())
+                .authorId(review.getUser().getId())
+                .authorNickname(review.getUser().getNickname())
+                .schoolId(review.getSchool().getId())
+                .schoolName(review.getSchool().getName())
+                .tags(review.getTags().stream().map(TagResponse::from).toList())
+                .images(imageResponses)
+                .build();
     }
 
     @Transactional
@@ -64,7 +96,7 @@ public class ReviewService {
         school.getReviews().add(review);
         school.updateAvgRating();
 
-        return ReviewResponse.from(review);
+        return toReviewResponse(review);
     }
 
     @Transactional
@@ -86,7 +118,7 @@ public class ReviewService {
 
         review.getSchool().updateAvgRating();
 
-        return ReviewResponse.from(review);
+        return toReviewResponse(review);
     }
 
     @Transactional
@@ -98,9 +130,71 @@ public class ReviewService {
             throw new CustomException("삭제 권한이 없습니다", HttpStatus.FORBIDDEN);
         }
 
+        // S3에서 이미지 삭제
+        for (ReviewImage image : review.getImages()) {
+            s3Service.delete(image.getImageKey());
+        }
+
         School school = review.getSchool();
         school.getReviews().remove(review);
         reviewRepository.delete(review);
         school.updateAvgRating();
+    }
+
+    @Transactional
+    public List<ReviewImageResponse> uploadImages(Long userId, Long reviewId, List<MultipartFile> files) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new CustomException("리뷰를 찾을 수 없습니다", HttpStatus.NOT_FOUND));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new CustomException("이미지 업로드 권한이 없습니다", HttpStatus.FORBIDDEN);
+        }
+
+        if (files.size() > 5) {
+            throw new CustomException("이미지는 최대 5장까지 업로드 가능합니다", HttpStatus.BAD_REQUEST);
+        }
+
+        if (review.getImages().size() + files.size() > 5) {
+            throw new CustomException("이미지는 최대 5장까지 업로드 가능합니다", HttpStatus.BAD_REQUEST);
+        }
+
+        List<ReviewImage> uploadedImages = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            String key = s3Service.upload(file, "reviews/" + reviewId);
+
+            ReviewImage image = ReviewImage.builder()
+                    .review(review)
+                    .imageUrl(key)  // key를 저장 (presigned URL은 조회 시 생성)
+                    .imageKey(key)
+                    .originalFilename(file.getOriginalFilename())
+                    .build();
+
+            uploadedImages.add(reviewImageRepository.save(image));
+            review.getImages().add(image);
+        }
+
+        return uploadedImages.stream()
+                .map(img -> ReviewImageResponse.builder()
+                        .id(img.getId())
+                        .imageUrl(s3Service.getPresignedUrl(img.getImageKey()))
+                        .originalFilename(img.getOriginalFilename())
+                        .createdAt(img.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional
+    public void deleteImage(Long userId, Long imageId) {
+        ReviewImage image = reviewImageRepository.findById(imageId)
+                .orElseThrow(() -> new CustomException("이미지를 찾을 수 없습니다", HttpStatus.NOT_FOUND));
+
+        if (!image.getReview().getUser().getId().equals(userId)) {
+            throw new CustomException("이미지 삭제 권한이 없습니다", HttpStatus.FORBIDDEN);
+        }
+
+        s3Service.delete(image.getImageKey());
+        image.getReview().getImages().remove(image);
+        reviewImageRepository.delete(image);
     }
 }

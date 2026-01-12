@@ -33,12 +33,14 @@ public class SchoolService {
     }
 
     @Transactional(readOnly = true)
-    public List<SchoolResponse> getNearbySchools(BigDecimal lat, BigDecimal lng, BigDecimal radius) {
-        // radius in degrees (approximately 0.01 degree = 1.1km)
-        BigDecimal minLat = lat.subtract(radius);
-        BigDecimal maxLat = lat.add(radius);
-        BigDecimal minLng = lng.subtract(radius);
-        BigDecimal maxLng = lng.add(radius);
+    public List<SchoolResponse> getNearbySchools(BigDecimal lat, BigDecimal lng, int radiusMeters) {
+        // 미터를 도(degree)로 변환 (대략 111,000m = 1도)
+        BigDecimal radiusDegrees = BigDecimal.valueOf(radiusMeters).divide(BigDecimal.valueOf(111000), 8, java.math.RoundingMode.HALF_UP);
+
+        BigDecimal minLat = lat.subtract(radiusDegrees);
+        BigDecimal maxLat = lat.add(radiusDegrees);
+        BigDecimal minLng = lng.subtract(radiusDegrees);
+        BigDecimal maxLng = lng.add(radiusDegrees);
 
         return schoolRepository.findByLocationBounds(minLat, maxLat, minLng, maxLng).stream()
                 .map(SchoolResponse::from)

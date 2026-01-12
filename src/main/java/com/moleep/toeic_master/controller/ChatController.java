@@ -6,12 +6,14 @@ import com.moleep.toeic_master.dto.response.ChatMessageResponse;
 import com.moleep.toeic_master.security.CustomUserDetails;
 import com.moleep.toeic_master.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -29,12 +31,20 @@ public class ChatController {
     private final ChatService chatService;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @GetMapping("/api/studies/{studyId}/messages")
+    @GetMapping(value = "/api/studies/{studyId}/messages", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "채팅 이력 조회", description = "스터디 채팅방의 메시지 이력을 조회합니다")
     public ResponseEntity<ApiResponse<Page<ChatMessageResponse>>> getMessages(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long studyId,
-            @PageableDefault(size = 50, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "50") int size,
+            @Parameter(description = "정렬 (예: createdAt,desc)") @RequestParam(defaultValue = "createdAt,desc") String sort) {
+
+        String[] sortParams = sort.split(",");
+        Sort.Direction direction = sortParams.length > 1 && sortParams[1].equalsIgnoreCase("asc")
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
+
         Page<ChatMessageResponse> messages = chatService.getMessages(studyId, userDetails.getId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(messages));
     }

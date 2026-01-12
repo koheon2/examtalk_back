@@ -3,10 +3,16 @@ spring:
     name: toeic_master
 
   datasource:
-    url: jdbc:postgresql://toeic-master-db.cnio2wekq32n.ap-northeast-2.rds.amazonaws.com:5432/toeic_master
+    url: jdbc:postgresql://toeic-master-db.cnio2wekq32n.ap-northeast-2.rds.amazonaws.com:5432/postgres
     username: toeic_master
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5       # 기본 10 → 5
+      minimum-idle: 2
+      idle-timeout: 30000
+      connection-timeout: 10000
+      max-lifetime: 600000       # 10분
 
   jpa:
     hibernate:
@@ -27,10 +33,41 @@ jwt:
 
 server:
   port: 8080
+  tomcat:
+    threads:
+      max: 50        # 기본 200 → 50으로 줄임
+      min-spare: 5
+    max-connections: 200
+    accept-count: 50
+    connection-timeout: 10000
+
+spring.web.resources:
+  cache:
+    period: 3600
+    cachecontrol:
+      max-age: 3600
+      cache-public: true
 
 springdoc:
   api-docs:
     path: /api-docs
+    enabled: ${SWAGGER_ENABLED:true}
   swagger-ui:
     path: /swagger-ui.html
     operations-sorter: method
+    enabled: ${SWAGGER_ENABLED:true}
+    url: /api-docs
+  cache:
+    disabled: false
+  pre-loading-enabled: true
+
+cloud:
+  aws:
+    credentials:
+      access-key: ${AWS_ACCESS_KEY:}
+      secret-key: ${AWS_SECRET_KEY:}
+    region:
+      static: ap-northeast-2
+    s3:
+      bucket: ${S3_BUCKET_NAME}
+      presigned-url-expiration: 60  # Presigned URL 유효시간 (분)

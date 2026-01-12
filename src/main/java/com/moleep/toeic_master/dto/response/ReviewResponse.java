@@ -20,6 +20,7 @@ public class ReviewResponse {
     private Long schoolId;
     private String schoolName;
     private List<TagResponse> tags;
+    private List<ReviewImageResponse> images;
 
     public static ReviewResponse from(Review review) {
         return ReviewResponse.builder()
@@ -32,6 +33,7 @@ public class ReviewResponse {
                 .schoolId(review.getSchool().getId())
                 .schoolName(review.getSchool().getName())
                 .tags(review.getTags().stream().map(TagResponse::from).toList())
+                .images(review.getImages().stream().map(ReviewImageResponse::from).toList())
                 .build();
     }
 }
