@@ -8,6 +8,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, Long> {
-    Page<Review> findBySchoolIdOrderByCreatedAtDesc(Long schoolId, Pageable pageable);
+    Page<Review> findBySchoolId(Long schoolId, Pageable pageable);
     boolean existsByUserIdAndSchoolId(Long userId, Long schoolId);
 }

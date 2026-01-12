@@ -1,9 +1,7 @@
 package com.moleep.toeic_master.config;
 
 import com.moleep.toeic_master.entity.School;
-import com.moleep.toeic_master.entity.Tag;
 import com.moleep.toeic_master.repository.SchoolRepository;
-import com.moleep.toeic_master.repository.TagRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -18,33 +16,12 @@ import java.util.List;
 @Slf4j
 public class DataLoader implements CommandLineRunner {
 
-    private final TagRepository tagRepository;
     private final SchoolRepository schoolRepository;
 
     @Override
     @Transactional
     public void run(String... args) {
-        loadTags();
         loadSchools();
-    }
-
-    private void loadTags() {
-        if (tagRepository.count() > 0) {
-            log.info("Tags already exist, skipping initial data load");
-            return;
-        }
-
-        List<String> tagNames = List.of(
-                "주차편함", "화장실깨끗", "책상넓음", "시계있음", "냉난방좋음",
-                "조용함", "교통편리", "대기공간있음", "음식점근처", "카페근처"
-        );
-
-        tagNames.forEach(name -> {
-            Tag tag = Tag.builder().name(name).build();
-            tagRepository.save(tag);
-        });
-
-        log.info("Loaded {} tags", tagNames.size());
     }
 
     private void loadSchools() {

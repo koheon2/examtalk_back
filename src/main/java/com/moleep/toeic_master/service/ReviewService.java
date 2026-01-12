@@ -3,17 +3,16 @@ package com.moleep.toeic_master.service;
 import com.moleep.toeic_master.dto.request.ReviewRequest;
 import com.moleep.toeic_master.dto.response.ReviewImageResponse;
 import com.moleep.toeic_master.dto.response.ReviewResponse;
-import com.moleep.toeic_master.dto.response.TagResponse;
 import com.moleep.toeic_master.entity.Review;
 import com.moleep.toeic_master.entity.ReviewImage;
+import com.moleep.toeic_master.entity.ReviewLike;
 import com.moleep.toeic_master.entity.School;
-import com.moleep.toeic_master.entity.Tag;
 import com.moleep.toeic_master.entity.User;
 import com.moleep.toeic_master.exception.CustomException;
 import com.moleep.toeic_master.repository.ReviewImageRepository;
+import com.moleep.toeic_master.repository.ReviewLikeRepository;
 import com.moleep.toeic_master.repository.ReviewRepository;
 import com.moleep.toeic_master.repository.SchoolRepository;
-import com.moleep.toeic_master.repository.TagRepository;
 import com.moleep.toeic_master.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -24,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 @Service
@@ -33,18 +31,18 @@ public class ReviewService {
 
     private final ReviewRepository reviewRepository;
     private final ReviewImageRepository reviewImageRepository;
+    private final ReviewLikeRepository reviewLikeRepository;
     private final SchoolRepository schoolRepository;
     private final UserRepository userRepository;
-    private final TagRepository tagRepository;
     private final S3Service s3Service;
 
     @Transactional(readOnly = true)
-    public Page<ReviewResponse> getReviewsBySchool(Long schoolId, Pageable pageable) {
-        return reviewRepository.findBySchoolIdOrderByCreatedAtDesc(schoolId, pageable)
-                .map(this::toReviewResponse);
+    public Page<ReviewResponse> getReviewsBySchool(Long schoolId, Long currentUserId, Pageable pageable) {
+        return reviewRepository.findBySchoolId(schoolId, pageable)
+                .map(review -> toReviewResponse(review, currentUserId));
     }
 
-    private ReviewResponse toReviewResponse(Review review) {
+    private ReviewResponse toReviewResponse(Review review, Long currentUserId) {
         List<ReviewImageResponse> imageResponses = review.getImages().stream()
                 .map(img -> ReviewImageResponse.builder()
                         .id(img.getId())
@@ -54,16 +52,23 @@ public class ReviewService {
                         .build())
                 .toList();
 
+        boolean liked = currentUserId != null && reviewLikeRepository.existsByReviewIdAndUserId(review.getId(), currentUserId);
+
         return ReviewResponse.builder()
                 .id(review.getId())
                 .rating(review.getRating())
                 .content(review.getContent())
+                .recommended(review.getRecommended())
+                .facilityGood(review.getFacilityGood())
+                .quiet(review.getQuiet())
+                .accessible(review.getAccessible())
+                .likeCount(review.getLikeCount())
+                .liked(liked)
                 .createdAt(review.getCreatedAt())
                 .authorId(review.getUser().getId())
                 .authorNickname(review.getUser().getNickname())
                 .schoolId(review.getSchool().getId())
                 .schoolName(review.getSchool().getName())
-                .tags(review.getTags().stream().map(TagResponse::from).toList())
                 .images(imageResponses)
                 .build();
     }
@@ -85,18 +90,17 @@ public class ReviewService {
                 .school(school)
                 .rating(request.getRating())
                 .content(request.getContent())
+                .recommended(request.getRecommended())
+                .facilityGood(request.getFacilityGood())
+                .quiet(request.getQuiet())
+                .accessible(request.getAccessible())
                 .build();
-
-        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-            List<Tag> tags = tagRepository.findByIdIn(request.getTagIds());
-            review.setTags(new HashSet<>(tags));
-        }
 
         reviewRepository.save(review);
         school.getReviews().add(review);
         school.updateAvgRating();
 
-        return toReviewResponse(review);
+        return toReviewResponse(review, userId);
     }
 
     @Transactional
@@ -110,15 +114,14 @@ public class ReviewService {
 
         review.setRating(request.getRating());
         review.setContent(request.getContent());
-
-        if (request.getTagIds() != null) {
-            List<Tag> tags = tagRepository.findByIdIn(request.getTagIds());
-            review.setTags(new HashSet<>(tags));
-        }
+        review.setRecommended(request.getRecommended());
+        review.setFacilityGood(request.getFacilityGood());
+        review.setQuiet(request.getQuiet());
+        review.setAccessible(request.getAccessible());
 
         review.getSchool().updateAvgRating();
 
-        return toReviewResponse(review);
+        return toReviewResponse(review, userId);
     }
 
     @Transactional
@@ -196,5 +199,39 @@ public class ReviewService {
         s3Service.delete(image.getImageKey());
         image.getReview().getImages().remove(image);
         reviewImageRepository.delete(image);
+    }
+
+    @Transactional
+    public void likeReview(Long userId, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new CustomException("리뷰를 찾을 수 없습니다", HttpStatus.NOT_FOUND));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException("사용자를 찾을 수 없습니다", HttpStatus.NOT_FOUND));
+
+        if (reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId)) {
+            throw new CustomException("이미 좋아요를 눌렀습니다", HttpStatus.BAD_REQUEST);
+        }
+
+        ReviewLike like = ReviewLike.builder()
+                .review(review)
+                .user(user)
+                .build();
+
+        reviewLikeRepository.save(like);
+        review.setLikeCount(review.getLikeCount() + 1);
+    }
+
+    @Transactional
+    public void unlikeReview(Long userId, Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new CustomException("리뷰를 찾을 수 없습니다", HttpStatus.NOT_FOUND));
+
+        if (!reviewLikeRepository.existsByReviewIdAndUserId(reviewId, userId)) {
+            throw new CustomException("좋아요를 누르지 않았습니다", HttpStatus.BAD_REQUEST);
+        }
+
+        reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
+        review.setLikeCount(Math.max(0, review.getLikeCount() - 1));
     }
 }

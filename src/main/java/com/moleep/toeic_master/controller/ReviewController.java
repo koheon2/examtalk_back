@@ -34,6 +34,7 @@ public class ReviewController {
     @GetMapping(value = "/api/schools/{schoolId}/reviews", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "학교 리뷰 목록", description = "특정 학교의 리뷰 목록을 조회합니다")
     public ResponseEntity<ApiResponse<Page<ReviewResponse>>> getReviews(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @PathVariable Long schoolId,
             @Parameter(description = "페이지 번호 (0부터 시작)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "10") int size,
@@ -44,7 +45,8 @@ public class ReviewController {
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortParams[0]));
 
-        Page<ReviewResponse> reviews = reviewService.getReviewsBySchool(schoolId, pageable);
+        Long currentUserId = userDetails != null ? userDetails.getId() : null;
+        Page<ReviewResponse> reviews = reviewService.getReviewsBySchool(schoolId, currentUserId, pageable);
         return ResponseEntity.ok(ApiResponse.success(reviews));
     }
 
@@ -98,6 +100,26 @@ public class ReviewController {
             @PathVariable Long imageId) {
 
         reviewService.deleteImage(userDetails.getId(), imageId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/api/reviews/{reviewId}/like", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "리뷰 좋아요", description = "리뷰에 좋아요를 표시합니다")
+    public ResponseEntity<ApiResponse<Void>> likeReview(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long reviewId) {
+
+        reviewService.likeReview(userDetails.getId(), reviewId);
+        return ResponseEntity.ok(ApiResponse.success("좋아요를 눌렀습니다", null));
+    }
+
+    @DeleteMapping("/api/reviews/{reviewId}/like")
+    @Operation(summary = "리뷰 좋아요 취소", description = "리뷰 좋아요를 취소합니다")
+    public ResponseEntity<Void> unlikeReview(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long reviewId) {
+
+        reviewService.unlikeReview(userDetails.getId(), reviewId);
         return ResponseEntity.noContent().build();
     }
 }

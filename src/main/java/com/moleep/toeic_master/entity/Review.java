@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "reviews")
@@ -35,14 +33,21 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    @ManyToMany
-    @JoinTable(
-            name = "review_tags",
-            joinColumns = @JoinColumn(name = "review_id"),
-            inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
+    @Column(nullable = false)
+    private Boolean recommended;
+
+    @Column(name = "facility_good", nullable = false)
+    private Boolean facilityGood;
+
+    @Column(nullable = false)
+    private Boolean quiet;
+
+    @Column(nullable = false)
+    private Boolean accessible;
+
+    @Column(name = "like_count", nullable = false)
     @Builder.Default
-    private Set<Tag> tags = new HashSet<>();
+    private Long likeCount = 0L;
 
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
