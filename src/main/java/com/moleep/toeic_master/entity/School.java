@@ -35,6 +35,12 @@ public class School {
     @Builder.Default
     private BigDecimal avgRating = BigDecimal.ZERO;
 
+    @Column(columnDefinition = "TEXT")
+    private String evaluation;
+
+    @Column(columnDefinition = "BYTEA")
+    private byte[] embedding;
+
     @OneToMany(mappedBy = "school", cascade = CascadeType.ALL)
     @Builder.Default
     private List<Review> reviews = new ArrayList<>();

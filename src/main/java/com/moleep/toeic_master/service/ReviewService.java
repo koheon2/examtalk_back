@@ -37,6 +37,8 @@ public class ReviewService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final ScoreService scoreService;
+    private final EmbeddingService embeddingService;
+    private final SchoolEmbeddingCache schoolEmbeddingCache;
 
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviewsBySchool(Long schoolId, Long currentUserId, Pageable pageable) {
@@ -105,6 +107,9 @@ public class ReviewService {
         // 리뷰 작성 점수 지급
         scoreService.addScore(userId, ScoreType.WRITE_REVIEW, review.getId());
 
+        // 학교 임베딩 업데이트
+        updateSchoolEmbedding(school);
+
         return toReviewResponse(review, userId);
     }
 
@@ -125,6 +130,9 @@ public class ReviewService {
         review.setAccessible(request.getAccessible());
 
         review.getSchool().updateAvgRating();
+
+        // 학교 임베딩 업데이트
+        updateSchoolEmbedding(review.getSchool());
 
         return toReviewResponse(review, userId);
     }
@@ -147,6 +155,9 @@ public class ReviewService {
         school.getReviews().remove(review);
         reviewRepository.delete(review);
         school.updateAvgRating();
+
+        // 학교 임베딩 업데이트
+        updateSchoolEmbedding(school);
     }
 
     @Transactional
@@ -238,5 +249,26 @@ public class ReviewService {
 
         reviewLikeRepository.deleteByReviewIdAndUserId(reviewId, userId);
         review.setLikeCount(Math.max(0, review.getLikeCount() - 1));
+    }
+
+    private void updateSchoolEmbedding(School school) {
+        List<String> reviewContents = school.getReviews().stream()
+                .map(Review::getContent)
+                .filter(content -> content != null && !content.isBlank())
+                .toList();
+
+        if (reviewContents.isEmpty()) {
+            school.setEvaluation(null);
+            school.setEmbedding(null);
+            schoolEmbeddingCache.remove(school.getId());
+            return;
+        }
+
+        EmbeddingService.VenueEvalResult result = embeddingService.getVenueEvaluation(reviewContents);
+        if (result != null) {
+            school.setEvaluation(result.evaluation());
+            school.setEmbedding(embeddingService.floatArrayToBytes(result.embedding()));
+            schoolEmbeddingCache.put(school.getId(), result.embedding());
+        }
     }
 }

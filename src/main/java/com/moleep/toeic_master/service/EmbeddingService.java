@@ -16,6 +16,7 @@ import java.util.Map;
 public class EmbeddingService {
 
     private static final String EMBEDDING_API_URL = "http://172.10.5.41/embed";
+    private static final String VENUE_EVAL_EMBED_URL = "http://172.10.5.41/venue/eval-embed";
 
     private final RestTemplate restTemplate;
 
@@ -90,4 +91,32 @@ public class EmbeddingService {
 
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
+
+    public VenueEvalResult getVenueEvaluation(List<String> reviews) {
+        if (reviews == null || reviews.isEmpty()) {
+            return null;
+        }
+
+        try {
+            Map<String, List<String>> request = Map.of("reviews", reviews);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = restTemplate.postForObject(VENUE_EVAL_EMBED_URL, request, Map.class);
+
+            if (response != null && response.containsKey("evaluation") && response.containsKey("embedding")) {
+                String evaluation = (String) response.get("evaluation");
+                @SuppressWarnings("unchecked")
+                List<Double> embeddingList = (List<Double>) response.get("embedding");
+                float[] embedding = new float[embeddingList.size()];
+                for (int i = 0; i < embeddingList.size(); i++) {
+                    embedding[i] = embeddingList.get(i).floatValue();
+                }
+                return new VenueEvalResult(evaluation, embedding);
+            }
+        } catch (Exception e) {
+            log.error("Failed to get venue evaluation for reviews", e);
+        }
+        return null;
+    }
+
+    public record VenueEvalResult(String evaluation, float[] embedding) {}
 }
