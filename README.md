@@ -19,43 +19,7 @@ https://github.com/koheon2/examtalk_ai.git
 
 ## 시스템 아키텍처
 
-```
-      Frontend                         Backend                               DB / Storage
- ┌──────────────────┐          ┌────────────────────────┐          ┌──────────────────────────┐
- │                  │          │       AWS EC2          │          │                          │
- │  ┌────────────┐  │          │  ┌──────────────────┐  │          │  ┌────────────────────┐  │
- │  │  Flutter   │  │  REST    │  │   Spring Boot    │  │   SQL    │  │     AWS RDS        │  │
- │  │  Mobile    │──┼──────────┼─▶│   API Server     │──┼──────────┼─▶│   (PostgreSQL)     │  │
- │  │   App      │  │  API     │  │                  │  │          │  │                    │  │
- │  │            │  │          │  │  Auth (JWT)      │  │          │  │  users, studies    │  │
- │  │ ─────────  │  │          │  │  User, Study     │  │          │  │  schools, reviews  │  │
- │  │ Study      │  │◀─────────┼──│  School, Review  │◀─┼──────────┼──│  chat_messages     │  │
- │  │ School Map │  │  JSON    │  │  Chat (WebSocket)│  │  Data    │  │                    │  │
- │  │ Review     │  │ Response │  └──────────────────┘  │          │  └────────────────────┘  │
- │  │ Chat UI    │  │          │           │            │          │                          │
- │  └────────────┘  │          │           │ HTTP       │          │  ┌────────────────────┐  │
- │        │         │          │           ▼            │          │  │                    │  │
- │        │         │          │  ┌──────────────────┐  │  Image   │  │      AWS S3        │  │
- │        │         │          │  │   KCLOUD GPU     │  │  Upload  │  │                    │  │
- │        │         │          │  │   AI Server      │  ├──────────┼─▶│  Profile Images    │  │
- │        │         │          │  │   (FastAPI)      │  │          │  │  Review Images     │  │
- │        │         │          │  │                  │  │          │  │  Chat Images       │  │
- │        │         │          │  │ ┌──────────────┐ │  │          │  │                    │  │
- │        │         │          │  │ │   LLaMA 3.1  │ │  │          │  └─────────┬──────────┘  │
- │        │         │          │  │ │     8B       │ │  │          │            │             │
- │        │         │          │  │ └──────────────┘ │  │          │            │             │
- │        │         │          │  │ ┌──────────────┐ │  │          │            │             │
- │        │         │          │  │ │ Sentence     │ │  │          │            │             │
- │        │         │          │  │ │ Transformer  │ │  │          │            │             │
- │        │         │          │  │ │(e5-base)     │ │  │          │            │             │
- │        │         │          │  │ └──────────────┘ │  │          │            │             │
- │        │         │          │  └──────────────────┘  │          │            │             │
- └────────┼─────────┘          └────────────────────────┘          └────────────┼─────────────┘
-          │                                                                     │
-          │                         Presigned URL                               │
-          └─────────────────────────────────────────────────────────────────────┘
-                                    (Direct Access)
-```
+![Uploading Mermaid Chart - Create complex, visual diagrams with text.-2026-01-14-102602.png…]()
 
 ### 컴포넌트 설명
 
