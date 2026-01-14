@@ -19,7 +19,7 @@ https://github.com/koheon2/examtalk_ai.git
 
 ## 시스템 아키텍처
 
-!(./Mermaid Chart - Create complex, visual diagrams with text.-2026-01-14-102602.png)
+![](./Mermaid Chart - Create complex, visual diagrams with text.-2026-01-14-102602.png)
 
 ### 컴포넌트 설명
 
