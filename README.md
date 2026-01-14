@@ -18,7 +18,7 @@ https://github.com/koheon2/examtalk_ai.git
 - **Build Tool**: Gradle
 
 ## 시스템 아키텍처
-<img src="{[여기에 이미지 주소 붙여넣기](https://github.com/user-attachments/assets/e35bbff9-954e-46e4-8069-4c9f5cd8d817)}"  width="500" height="800"/>
+<img src="https://github.com/user-attachments/assets/e35bbff9-954e-46e4-8069-4c9f5cd8d817"  width="500" height="800"/>
 
 ### 컴포넌트 설명
 
