@@ -19,7 +19,7 @@ https://github.com/koheon2/examtalk_ai.git
 
 ## 시스템 아키텍처
 
-!(./figure.png)
+!([./figure.png](https://github.com/user-attachments/assets/e35bbff9-954e-46e4-8069-4c9f5cd8d817))
 
 ### 컴포넌트 설명
 
