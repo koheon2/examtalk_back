@@ -15,4 +15,5 @@ public interface StudyApplicationRepository extends JpaRepository<StudyApplicati
     List<StudyApplication> findByUserId(Long userId);
     Optional<StudyApplication> findByStudyIdAndUserId(Long studyId, Long userId);
     boolean existsByStudyIdAndUserIdAndStatus(Long studyId, Long userId, ApplicationStatus status);
+    void deleteByStudyId(Long studyId);
 }

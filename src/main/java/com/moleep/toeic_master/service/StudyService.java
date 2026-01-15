@@ -4,6 +4,7 @@ import com.moleep.toeic_master.dto.request.StudyRequest;
 import com.moleep.toeic_master.dto.response.StudyResponse;
 import com.moleep.toeic_master.entity.*;
 import com.moleep.toeic_master.repository.ChatMessageRepository;
+import com.moleep.toeic_master.repository.StudyApplicationRepository;
 import com.moleep.toeic_master.repository.StudyMemberRepository;
 import com.moleep.toeic_master.exception.CustomException;
 import com.moleep.toeic_master.repository.StudyRepository;
@@ -22,6 +23,7 @@ public class StudyService {
     private final StudyRepository studyRepository;
     private final UserRepository userRepository;
     private final StudyMemberRepository studyMemberRepository;
+    private final StudyApplicationRepository studyApplicationRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final EmbeddingService embeddingService;
     private final StudyEmbeddingCache studyEmbeddingCache;
@@ -126,6 +128,7 @@ public class StudyService {
 
         // 관련 데이터 먼저 삭제
         chatMessageRepository.deleteByStudyId(studyId);
+        studyApplicationRepository.deleteByStudyId(studyId);
         studyMemberRepository.deleteByStudyId(studyId);
 
         studyRepository.delete(study);
